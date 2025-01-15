@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="poliacciones:Web exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/poliacciones_Web_exploded</output-path>
+    <root id="root">
+      <element id="javaee-facet-resources" facet="poliacciones/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="poliacciones" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>
