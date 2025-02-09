@@ -2,14 +2,17 @@ package com.jotacode.poliacciones_backend.service;
 
 import com.jotacode.poliacciones_backend.model.Accion;
 import com.jotacode.poliacciones_backend.model.Usuario;
+import com.jotacode.poliacciones_backend.model.dto.AccionConsolidadoDTO;
 import com.jotacode.poliacciones_backend.repository.AccionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AccionService {
@@ -30,7 +33,7 @@ public class AccionService {
         }
 
         // Validar usuario
-        Usuario usuario = usuarioService.obtenerUsuarioPorId(accion.getUsuario().getIdUsuario());
+        Usuario usuario = usuarioService.obtenerUsuarioPorId(accion.getUsuario().getCedula());
         accion.setUsuario(usuario);
 
         // Validar fecha
@@ -55,9 +58,8 @@ public class AccionService {
                 .orElseThrow(() -> new IllegalArgumentException("Acción no encontrada con ID: " + accionId));
     }
 
-    public List<Accion> obtenerAccionesPorUsuario(Long usuarioId) {
-        return accionRepository.findByUsuarioIdUsuario(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("No se encontraron acciones para el usuario con ID: " + usuarioId));
+    public Page<Accion> obtenerAccionesPorUsuario(String idUsuario, Pageable pageable) {
+        return accionRepository.findByUsuarioCedula(idUsuario, pageable);
     }
 
     public Double obtenerPrecioPorSimboloYFecha(String simbolo, LocalDate fecha) {
@@ -87,5 +89,51 @@ public class AccionService {
                 "fechaActual", LocalDate.now().toString()
         );
     }
+
+    public List<AccionConsolidadoDTO> obtenerConsolidadoAcciones(String usuarioId) {
+        List<Accion> acciones = accionRepository.findByUsuarioCedula(usuarioId)
+                .orElse(Collections.emptyList());
+
+        // Agrupar acciones por símbolo
+        Map<String, List<Accion>> accionesPorSimbolo = acciones.stream()
+                .collect(Collectors.groupingBy(Accion::getNombreAccion));
+
+        return accionesPorSimbolo.entrySet().stream()
+                .map(entry -> {
+                    String simbolo = entry.getKey();
+                    List<Accion> accionesDelSimbolo = entry.getValue();
+
+                    // Calcular totales
+                    int cantidadTotal = accionesDelSimbolo.stream()
+                            .mapToInt(Accion::getCantidad)
+                            .sum();
+
+                    double valorTotalUSD = accionesDelSimbolo.stream()
+                            .mapToDouble(a -> a.getPrecio() * a.getCantidad())
+                            .sum();
+
+                    // Calcular precio de costo promedio
+                    double precioCosto = valorTotalUSD / cantidadTotal;
+
+                    // Obtener precio actual y calcular ganancia/pérdida
+                    Double precioActual = tiingoService.obtenerPrecioActual(simbolo)
+                            .orElseThrow(() -> new RuntimeException("No se pudo obtener el precio actual para " + simbolo));
+
+                    double valorActualTotal = cantidadTotal * precioActual;
+                    double gananciaPerdidaUSD = valorActualTotal - valorTotalUSD;
+                    double porcentajeGananciaPerdida = (gananciaPerdidaUSD / valorTotalUSD) * 100;
+
+                    return new AccionConsolidadoDTO(
+                            simbolo,
+                            cantidadTotal,
+                            valorTotalUSD,
+                            precioCosto,
+                            porcentajeGananciaPerdida,
+                            gananciaPerdidaUSD
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
 
 }

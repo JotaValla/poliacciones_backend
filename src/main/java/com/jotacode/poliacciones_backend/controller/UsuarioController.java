@@ -1,6 +1,7 @@
 package com.jotacode.poliacciones_backend.controller;
 
 import com.jotacode.poliacciones_backend.model.Usuario;
+import com.jotacode.poliacciones_backend.service.AccionService;
 import com.jotacode.poliacciones_backend.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +21,15 @@ public class UsuarioController {
         return usuarioService.crearUsuario(usuario);
     }
 
+    
+
     @GetMapping
     public List<Usuario> obtenerUsuarios() {
         return usuarioService.obtenerUsuarios();
     }
 
     @GetMapping("/{idUsuario}")
-    public Usuario obtenerUsuarioPorId(@PathVariable Long idUsuario) {
+    public Usuario obtenerUsuarioPorId(@PathVariable String idUsuario) {
         return usuarioService.obtenerUsuarioPorId(idUsuario);
     }
 }

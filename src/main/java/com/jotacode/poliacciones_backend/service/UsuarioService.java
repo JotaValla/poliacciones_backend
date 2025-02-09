@@ -23,7 +23,7 @@ public class UsuarioService {
         return usuarioRepository.findAll();
     }
 
-    public Usuario obtenerUsuarioPorId(Long id){
+    public Usuario obtenerUsuarioPorId(String id){
         return usuarioRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + id));
     }
 
