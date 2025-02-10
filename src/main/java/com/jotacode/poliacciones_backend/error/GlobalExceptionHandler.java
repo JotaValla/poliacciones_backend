@@ -38,4 +38,9 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(UsuarioExistenteException.class)
+    public ResponseEntity<String> handleUsuarioExistenteException(UsuarioExistenteException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
 }

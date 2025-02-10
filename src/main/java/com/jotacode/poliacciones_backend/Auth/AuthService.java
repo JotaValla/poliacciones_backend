@@ -1,5 +1,6 @@
 package com.jotacode.poliacciones_backend.Auth;
 
+import com.jotacode.poliacciones_backend.error.UsuarioExistenteException;
 import com.jotacode.poliacciones_backend.jwt.JwtService;
 import com.jotacode.poliacciones_backend.model.Usuario;
 import com.jotacode.poliacciones_backend.repository.UsuarioRepository;
@@ -24,22 +25,32 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public AuthResponse login(LoginRequest request){
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
 
-        Usuario usuario = (Usuario) usuarioRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            Usuario usuario = (Usuario) usuarioRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String token = jwtService.getToken(usuario);
+            String token = jwtService.getToken(usuario);
 
-        return AuthResponse.builder()
-                .token(token)
-                .cedula(usuario.getCedula())  // Agregar la cédula a la respuesta
-                .build();
+            return AuthResponse.builder()
+                    .token(token)
+                    .cedula(usuario.getCedula())
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Usuario o contraseña incorrectos");
+        }
     }
 
-    public AuthResponse register(RegisterRequest request){
+
+    public AuthResponse register(RegisterRequest request) throws UsuarioExistenteException {
+        // Verificar si ya existe un usuario con la misma cédula
+        if (usuarioRepository.existsById(request.getCedula())) {
+            throw new UsuarioExistenteException("El usuario con cédula " + request.getCedula() + " ya está registrado.");
+        }
+
         Usuario usuario = Usuario.builder()
                 .cedula(request.getCedula())
                 .nombre(request.getNombre())
